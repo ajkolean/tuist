@@ -752,7 +752,7 @@ final class TestServiceTests: TuistUnitTestCase {
             throw error
         }
     }
-    
+
     func test_findMinimalSchemesForPlatforms_singlePlatform() throws {
         // Given
         let workspaceScheme = Scheme.test(name: "WorkspaceScheme")
@@ -760,7 +760,7 @@ final class TestServiceTests: TuistUnitTestCase {
         let target = GraphTarget.test(target: Target.test(name: "Target1", platform: .iOS))
         buildGraphInspector.testableSchemesStub = { _ in [workspaceScheme] }
         buildGraphInspector.testableTargetsStub = { _, _, _, _, _ in [target] }
-        
+
         // When
         let minimalSchemes = try subject.findMinimalSchemesForPlatforms(
             workspaceScheme: workspaceScheme,
@@ -771,13 +771,13 @@ final class TestServiceTests: TuistUnitTestCase {
             testTargets: [],
             skipTestTargets: []
         )
-        
+
         // Then
         XCTAssertEqual(minimalSchemes.count, 1)
         XCTAssertEqual(minimalSchemes[platform]?.0.name, workspaceScheme.name)
         XCTAssertEqual(minimalSchemes[platform]?.1.target.name, target.target.name)
     }
-    
+
     func test_findMinimalSchemesForPlatforms_multiplePlatforms() throws {
         // Given
         let workspaceScheme = Scheme.test(name: "WorkspaceScheme")
@@ -787,7 +787,7 @@ final class TestServiceTests: TuistUnitTestCase {
         let macScheme = Scheme.test(name: "MacScheme")
         buildGraphInspector.testableSchemesStub = { _ in [iosScheme, macScheme] }
         buildGraphInspector.testableTargetsStub = { _, _, _, _, _ in [iosTarget, macTarget] }
-        
+
         // When
         let minimalSchemes = try subject.findMinimalSchemesForPlatforms(
             workspaceScheme: workspaceScheme,
@@ -798,14 +798,14 @@ final class TestServiceTests: TuistUnitTestCase {
             testTargets: [],
             skipTestTargets: []
         )
-        
+
         // Then
         dump(minimalSchemes)
         XCTAssertEqual(minimalSchemes.count, 2)
         XCTAssertEqual(minimalSchemes[.iOS]?.1.target.name, iosTarget.target.name)
         XCTAssertEqual(minimalSchemes[.macOS]?.1.target.name, macTarget.target.name)
     }
-    
+
     func test_testWorkplaceScheme_runsTestsForMinimalSchemes() async throws {
         // Given
         givenGenerator()
@@ -821,19 +821,19 @@ final class TestServiceTests: TuistUnitTestCase {
         buildGraphInspector.testableTargetsStub = { _, _, _, _, _ in [target] }
         buildGraphInspector.workspaceSchemesStub = { _ in [scheme] }
         let path = try temporaryPath()
-        
+
         var testedSchemes: [String] = []
         xcodebuildController.testStub = { _, scheme, _, _, _, _, _, _, _, _, _, _, _ in
             testedSchemes.append(scheme)
         }
-        
+
         // When
         try await subject.testRun(path: path)
-        
+
         // Then
         XCTAssertEqual(testedSchemes, ["WorkspaceScheme"])
     }
-    
+
     func test_testWorkplaceScheme_validTestPlan() async throws {
         // Given
         givenGenerator()
@@ -845,25 +845,28 @@ final class TestServiceTests: TuistUnitTestCase {
         }
         let testPlan = "TestPlan"
         let testPlanPath = try AbsolutePath(validating: "/testPlan/\(testPlan)")
-        
-        let scheme = Scheme.test(name: "WorkspaceScheme", testAction: .test(testPlans: [.init(path: testPlanPath, testTargets: [], isDefault: true)]))
+
+        let scheme = Scheme.test(
+            name: "WorkspaceScheme",
+            testAction: .test(testPlans: [.init(path: testPlanPath, testTargets: [], isDefault: true)])
+        )
         let target = GraphTarget.test(target: Target.test(name: "Target1", platform: .iOS))
         buildGraphInspector.testableSchemesStub = { _ in [scheme] }
         buildGraphInspector.testableTargetsStub = { _, _, _, _, _ in [target] }
         buildGraphInspector.workspaceSchemesStub = { _ in [scheme] }
         var testedSchemes: [String] = []
-        
+
         xcodebuildController.testStub = { _, scheme, _, _, _, _, _, _, _, _, _, _, _ in
             testedSchemes.append(scheme)
         }
-        
+
         // When
         try await subject.testRun(path: testPlanPath, testPlanConfiguration: TestPlanConfiguration(testPlan: "TestPlan"))
-        
+
         // Then
         XCTAssertEqual(testedSchemes, ["WorkspaceScheme"])
     }
-    
+
     func test_testWorkplaceScheme_invalidTestPlan() async throws {
         // Given
         givenGenerator()
@@ -875,19 +878,25 @@ final class TestServiceTests: TuistUnitTestCase {
         }
         let testPlan = "TestPlan"
         let testPlanPath = try AbsolutePath(validating: "/testPlan/\(testPlan)")
-        
-        let scheme = Scheme.test(name: "WorkspaceScheme", testAction: .test(testPlans: [.init(path: testPlanPath, testTargets: [], isDefault: true)]))
+
+        let scheme = Scheme.test(
+            name: "WorkspaceScheme",
+            testAction: .test(testPlans: [.init(path: testPlanPath, testTargets: [], isDefault: true)])
+        )
         buildGraphInspector.testableSchemesStub = { _ in [scheme] }
         buildGraphInspector.workspaceSchemesStub = { _ in [scheme] }
         var testedSchemes: [String] = []
-        
+
         xcodebuildController.testStub = { _, scheme, _, _, _, _, _, _, _, _, _, _, _ in
             testedSchemes.append(scheme)
         }
-        
+
         // When / Then
         do {
-            try await subject.testRun(path: testPlanPath, testPlanConfiguration: TestPlanConfiguration(testPlan: "InvalidTestPlan"))
+            try await subject.testRun(
+                path: testPlanPath,
+                testPlanConfiguration: TestPlanConfiguration(testPlan: "InvalidTestPlan")
+            )
             XCTFail("Expected test to throw")
         } catch TestServiceError.testPlanNotFound {
             // Test plan not found, expected behavior
@@ -895,7 +904,7 @@ final class TestServiceTests: TuistUnitTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
-    
+
     func test_testWorkplaceScheme_runsTestsForWorkspaceSchemes() async throws {
         // Given
         givenGenerator()
@@ -912,19 +921,19 @@ final class TestServiceTests: TuistUnitTestCase {
         buildGraphInspector.testableTargetsStub = { _, _, _, _, _ in [target] }
         buildGraphInspector.workspaceSchemesStub = { _ in [scheme1, scheme2] }
         let path = try temporaryPath()
-        
+
         var testedSchemes: [String] = []
         xcodebuildController.testStub = { _, scheme, _, _, _, _, _, _, _, _, _, _, _ in
             testedSchemes.append(scheme)
         }
-        
+
         // When
         try await subject.testRun(path: path)
-        
+
         // Then
         XCTAssertEqual(testedSchemes, ["WorkspaceScheme1", "WorkspaceScheme2"])
     }
-    
+
     func test_testWorkplaceScheme_skipsTestsWhenNoSchemes() async throws {
         // Given
         givenGenerator()
@@ -936,15 +945,15 @@ final class TestServiceTests: TuistUnitTestCase {
         }
         buildGraphInspector.workspaceSchemesStub = { _ in [] }
         let path = try temporaryPath()
-        
+
         var testedSchemes: [String] = []
         xcodebuildController.testStub = { _, scheme, _, _, _, _, _, _, _, _, _, _, _ in
             testedSchemes.append(scheme)
         }
-        
+
         // When
         try await subject.testRun(path: path)
-        
+
         // Then
         XCTAssertTrue(testedSchemes.isEmpty)
         XCTAssertPrinterOutputContains("There are no tests to run, finishing early")
