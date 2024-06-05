@@ -64,7 +64,7 @@ public final class MockBuildGraphInspector: BuildGraphInspecting {
             return GraphTarget.test()
         }
     }
-    
+
     public var testableTargetsStub: ((Scheme, String?, [TestIdentifier], [TestIdentifier], GraphTraversing) -> [GraphTarget])?
     public func testableTargets(
         scheme: Scheme,

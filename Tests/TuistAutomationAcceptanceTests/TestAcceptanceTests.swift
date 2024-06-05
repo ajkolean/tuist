@@ -20,7 +20,7 @@ final class TestAcceptanceTests: TuistAcceptanceTestCase {
         try await run(TestCommand.self)
         try await run(TestCommand.self, "App", "--test-plan", "All")
     }
-    
+
     func test_with_app_with_all_platforms() async throws {
         try setUpFixture(.appWithAllPlatforms)
         try await run(TestCommand.self, "--no-selective-testing", "--no-binary-cache", "-c")

@@ -6,6 +6,5 @@ final class TVAppUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         XCTAssertTrue(true)
-
     }
 }

@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  MacApp
-//
-//  Created by Andy Kolean on 6/3/24.
-//
-
 import SwiftUI
 
 struct ContentView: View {

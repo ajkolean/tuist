@@ -65,10 +65,10 @@ final class TestService { // swiftlint:disable:this type_body_length
     private let buildGraphInspector: BuildGraphInspecting
     private let simulatorController: SimulatorControlling
     private let contentHasher: ContentHashing
-    
+
     private let cacheDirectoryProviderFactory: CacheDirectoriesProviderFactoring
     private let configLoader: ConfigLoading
-    
+
     public convenience init(
         generatorFactory: GeneratorFactorying,
         cacheStorageFactory: CacheStorageFactorying
@@ -82,7 +82,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             configLoader: configLoader
         )
     }
-    
+
     init(
         generatorFactory: GeneratorFactorying = GeneratorFactory(),
         cacheStorageFactory: CacheStorageFactorying = EmptyCacheStorageFactory(),
@@ -102,7 +102,7 @@ final class TestService { // swiftlint:disable:this type_body_length
         self.cacheDirectoryProviderFactory = cacheDirectoryProviderFactory
         self.configLoader = configLoader
     }
-    
+
     static func validateParameters(
         testTargets: [TestIdentifier],
         skipTestTargets: [TestIdentifier]
@@ -124,7 +124,7 @@ final class TestService { // swiftlint:disable:this type_body_length
                     included: testTargets
                 )
             }
-            
+
             // --test-targets Test/MyClass --skip-test-targets Test/AnotherClass
             let skipTestTargetsClasses = try Set(skipTestTargets.map { try TestIdentifier(target: $0.target, class: $0.class) })
             let testTargetsClasses = try testTargets.lazy.filter { $0.class != nil }
@@ -140,7 +140,7 @@ final class TestService { // swiftlint:disable:this type_body_length
                     included: testTargets
                 )
             }
-            
+
             // --test-targets Test/MyClass/MyMethod --skip-test-targets Test/MyClass/AnotherMethod
             let skipTestTargetsClassesMethods = Set(skipTestTargets)
             let testTargetsClassesMethods = testTargets.lazy.filter { $0.class != nil && $0.method != nil }
@@ -152,7 +152,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             }
         }
     }
-    
+
     // swiftlint:disable:next function_body_length
     func run(
         runId: String,
@@ -186,9 +186,9 @@ final class TestService { // swiftlint:disable:this type_body_length
         // Load config
         let config = try configLoader.loadConfig(path: path)
         let cacheStorage = try cacheStorageFactory.cacheStorage(config: config)
-        
+
         let testsCacheTemporaryDirectory = try TemporaryDirectory(removeTreeOnDeinit: true)
-        
+
         let testGenerator = generatorFactory.testing(
             config: config,
             testsCacheDirectory: testsCacheTemporaryDirectory.path,
@@ -201,40 +201,40 @@ final class TestService { // swiftlint:disable:this type_body_length
             ignoreSelectiveTesting: ignoreSelectiveTesting,
             cacheStorage: cacheStorage
         )
-        
+
         logger.notice("Generating project for testing", metadata: .section)
         let graph = try await testGenerator.generateWithGraph(
             path: path
         ).1
-        
+
         if generateOnly {
             return
         }
-        
+
         let graphTraverser = GraphTraverser(graph: graph)
         let version = osVersion?.version()
         let testableSchemes = buildGraphInspector.testableSchemes(graphTraverser: graphTraverser) +
-        buildGraphInspector.workspaceSchemes(graphTraverser: graphTraverser)
+            buildGraphInspector.workspaceSchemes(graphTraverser: graphTraverser)
         logger.log(
             level: .debug,
             "Found the following testable schemes: \(Set(testableSchemes.map(\.name)).joined(separator: ", "))"
         )
-        
+
         let derivedDataPath = try derivedDataPath.map {
             try AbsolutePath(
                 validating: $0,
                 relativeTo: FileHandler.shared.currentPath
             )
         }
-        
+
         let passedResultBundlePath = resultBundlePath
-        
+
         let resultBundlePath = try self.resultBundlePath(
             passedResultBundlePath: passedResultBundlePath,
             runId: runId,
             config: config
         )
-        
+
         defer {
             if let resultBundlePath, let passedResultBundlePath, config.cloud != nil {
                 if !FileHandler.shared.exists(resultBundlePath.parentDirectory) {
@@ -243,7 +243,7 @@ final class TestService { // swiftlint:disable:this type_body_length
                 try? FileHandler.shared.copy(from: passedResultBundlePath, to: resultBundlePath)
             }
         }
-        
+
         if let schemeName {
             guard let scheme = testableSchemes.first(where: { $0.name == schemeName })
             else {
@@ -252,7 +252,7 @@ final class TestService { // swiftlint:disable:this type_body_length
                     existing: testableSchemes.map(\.name)
                 )
             }
-            
+
             switch (testPlanConfiguration?.testPlan, scheme.testAction?.targets.isEmpty, scheme.testAction?.testPlans?.isEmpty) {
             case (nil, true, _), (nil, nil, _):
                 logger.log(level: .info, "The scheme \(schemeName)'s test action has no tests to run, finishing early.")
@@ -263,9 +263,9 @@ final class TestService { // swiftlint:disable:this type_body_length
             default:
                 break
             }
-            
+
             let testSchemes: [Scheme] = [scheme]
-            
+
             for testScheme in testSchemes {
                 try await self.testScheme(
                     scheme: testScheme,
@@ -290,16 +290,14 @@ final class TestService { // swiftlint:disable:this type_body_length
                 .filter {
                     return $0.testAction.map { !$0.targets.isEmpty } ?? false
                 }
-        
-            
+
             if workplaceSchemes.isEmpty {
                 logger.log(level: .info, "There are no tests to run, finishing early")
                 return
             }
-            
-            
+
             for testScheme in workplaceSchemes {
-                try await self.testWorkplaceScheme(
+                try await testWorkplaceScheme(
                     scheme: testScheme,
                     graphTraverser: graphTraverser,
                     clean: clean,
@@ -318,9 +316,9 @@ final class TestService { // swiftlint:disable:this type_body_length
                 )
             }
         }
-        
+
         logger.log(level: .notice, "The project tests ran successfully", metadata: .success)
-        
+
         // Saving hashes from `testsCacheTemporaryDirectory` to `testsCacheDirectory` after all the tests have run successfully
         let cacheableItems: [CacheStorableItem: [AbsolutePath]] = try FileHandler.shared
             .contentsOfDirectory(testsCacheTemporaryDirectory.path)
@@ -328,12 +326,12 @@ final class TestService { // swiftlint:disable:this type_body_length
                 guard let name = try FileHandler.shared.contentsOfDirectory(hash).first else { return }
                 acc[CacheStorableItem(name: name.basename, hash: hash.basename)] = [AbsolutePath]()
             }
-        
+
         try await cacheStorage.store(cacheableItems, cacheCategory: .selectiveTests)
     }
-    
+
     // MARK: - Helpers
-    
+
     /// - Returns: Result bundle path to use. Either passed by the user or a path in the Tuist cache
     private func resultBundlePath(
         passedResultBundlePath: AbsolutePath?,
@@ -343,14 +341,14 @@ final class TestService { // swiftlint:disable:this type_body_length
         let runResultBundlePath = try cacheDirectoryProviderFactory.cacheDirectories()
             .tuistCacheDirectory(for: .runs)
             .appending(components: runId, Constants.resultBundleName)
-        
+
         if config.cloud == nil {
             return passedResultBundlePath
         } else {
             return passedResultBundlePath ?? runResultBundlePath
         }
     }
-    
+
     // swiftlint:disable:next function_body_length
     private func testScheme(
         scheme: Scheme,
@@ -388,15 +386,15 @@ final class TestService { // swiftlint:disable:this type_body_length
         ) else {
             throw TestServiceError.schemeWithoutTestableTargets(scheme: scheme.name, testPlan: testPlanConfiguration?.testPlan)
         }
-        
+
         let buildPlatform: TuistGraph.Platform
-        
+
         if let platform {
             buildPlatform = try TuistGraph.Platform.from(commandLineValue: platform)
         } else {
             buildPlatform = try buildableTarget.target.servicePlatform
         }
-        
+
         let destination = try await XcodeBuildDestination.find(
             for: buildableTarget.target,
             on: buildPlatform,
@@ -406,7 +404,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             graphTraverser: graphTraverser,
             simulatorController: simulatorController
         )
-        
+
         try await xcodebuildController.test(
             .workspace(graphTraverser.workspace.xcWorkspacePath),
             scheme: scheme.name,
@@ -428,7 +426,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             passthroughXcodeBuildArguments: passthroughXcodeBuildArguments
         )
     }
-    
+
     // swiftlint:disable:next function_body_length
     private func testWorkplaceScheme(
         scheme: Scheme,
@@ -457,7 +455,7 @@ final class TestService { // swiftlint:disable:this type_body_length
                 existing: testPlans.map(\.name)
             )
         }
-        
+
         let minSchemes = try findMinimalSchemesForPlatforms(
             workspaceScheme: scheme,
             platform: platform.map { try Platform.from(commandLineValue: $0) },
@@ -467,7 +465,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             testTargets: testTargets,
             skipTestTargets: skipTestTargets
         )
-        
+
         for (buildPlatform, (scheme, buildableTarget)) in minSchemes {
             let destination = try await XcodeBuildDestination.find(
                 for: buildableTarget.target,
@@ -478,7 +476,7 @@ final class TestService { // swiftlint:disable:this type_body_length
                 graphTraverser: graphTraverser,
                 simulatorController: simulatorController
             )
-            
+
             try await xcodebuildController.test(
                 .workspace(graphTraverser.workspace.xcWorkspacePath),
                 scheme: scheme.name,
@@ -501,7 +499,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             )
         }
     }
-    
+
     private func findMinimalSchemesForPlatforms(
         workspaceScheme: Scheme,
         platform: Platform?,
@@ -517,7 +515,7 @@ final class TestService { // swiftlint:disable:this type_body_length
                 return $0.testAction.map { !$0.targets.isEmpty } ?? false
             }
             .filter { $0 != workspaceScheme }
-        
+
         // Get all buildable targets from the workspace scheme
         let buildableTargets = buildGraphInspector.testableTargets(
             scheme: workspaceScheme,
@@ -526,7 +524,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             skipTestTargets: skipTestTargets,
             graphTraverser: graphTraverser
         )
-        
+
         // Group targets by platform
         var platformToTargetsMap: [Platform: [GraphTarget]] = [:]
         for target in buildableTargets {
@@ -534,25 +532,26 @@ final class TestService { // swiftlint:disable:this type_body_length
                 platformToTargetsMap[platform, default: []].append(target)
             }
         }
-        
+
         if let platform {
             platformToTargetsMap = platformToTargetsMap.filter { $0.key == platform }
         }
-        
+
         // If only one platform, use the workspace scheme
         if platformToTargetsMap.count <= 1,
-            let singlePlatform = platformToTargetsMap.first,
-            let target = singlePlatform.value.first {
+           let singlePlatform = platformToTargetsMap.first,
+           let target = singlePlatform.value.first
+        {
             return [singlePlatform.key: (workspaceScheme, target)]
         }
-        
+
         // Determine minimal set of schemes for each platform
         var platformToSchemeMap: [Platform: (Scheme, GraphTarget)] = [:]
         for (platform, targets) in platformToTargetsMap {
             var bestScheme: Scheme?
             var bestTarget: GraphTarget?
             var maxCoveredTargets: Set<GraphTarget> = []
-            
+
             for scheme in testableSchemes {
                 let schemeTargets = buildGraphInspector.testableTargets(
                     scheme: scheme,
@@ -561,27 +560,27 @@ final class TestService { // swiftlint:disable:this type_body_length
                     skipTestTargets: skipTestTargets,
                     graphTraverser: graphTraverser
                 ).filter { $0.target.supports(platform) }
-                
+
                 let schemeTargetSet = Set(schemeTargets)
                 let uncoveredTargets = targets.filter { !schemeTargetSet.contains($0) }
-                
+
                 guard !uncoveredTargets.isEmpty else {
                     bestScheme = scheme
                     bestTarget = schemeTargets.first
                     break
                 }
-                
+
                 guard schemeTargetSet.count > maxCoveredTargets.count else { continue }
                 maxCoveredTargets = schemeTargetSet
                 bestScheme = scheme
                 bestTarget = schemeTargets.first
             }
-            
-            if let bestScheme = bestScheme, let bestTarget = bestTarget {
+
+            if let bestScheme, let bestTarget {
                 platformToSchemeMap[platform] = (bestScheme, bestTarget)
             }
         }
-        
+
         return platformToSchemeMap
     }
 }

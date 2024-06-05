@@ -35,7 +35,7 @@ public protocol BuildGraphInspecting {
         skipTestTargets: [TestIdentifier],
         graphTraverser: GraphTraversing
     ) -> GraphTarget?
-    
+
     func testableTargets(
         scheme: Scheme,
         testPlan: String?,
@@ -153,7 +153,7 @@ public final class BuildGraphInspector: BuildGraphInspecting {
             return nil
         }
     }
-    
+
     public func testableTargets(
         scheme: Scheme,
         testPlan: String?,
@@ -170,14 +170,18 @@ public final class BuildGraphInspector: BuildGraphInspecting {
                 return testTargets.contains { $0.target == testTarget.target.name }
             }
         }
-        
+
         if let testPlanName = testPlan,
            let testPlan = scheme.testAction?.testPlans?.first(where: { $0.name == testPlanName }),
            let target = testPlan.testTargets.first(where: { isIncluded($0) })?.target
         {
-            return testPlan.testTargets.filter { isIncluded($0) }.map { $0.target }.compactMap { graphTraverser.target(path: $0.projectPath, name: $0.name) }
+            return testPlan.testTargets.filter { isIncluded($0) }.map(\.target).compactMap { graphTraverser.target(
+                path: $0.projectPath,
+                name: $0.name
+            ) }
         } else if let testTarget = scheme.testAction?.targets.first {
-            return scheme.testAction?.targets.compactMap { graphTraverser.target(path: $0.target.projectPath, name: $0.target.name) } ?? []
+            return scheme.testAction?.targets
+                .compactMap { graphTraverser.target(path: $0.target.projectPath, name: $0.target.name) } ?? []
         } else {
             return []
         }

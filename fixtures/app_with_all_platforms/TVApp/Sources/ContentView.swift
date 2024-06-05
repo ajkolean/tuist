@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  TVApp
-//
-//  Created by Andy Kolean on 6/4/24.
-//
-
 import SwiftUI
 
 struct ContentView: View {
