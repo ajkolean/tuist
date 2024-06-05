@@ -428,7 +428,7 @@ final class TestService { // swiftlint:disable:this type_body_length
     }
 
     // swiftlint:disable:next function_body_length
-    private func testWorkplaceScheme(
+    func testWorkplaceScheme(
         scheme: Scheme,
         graphTraverser: GraphTraversing,
         clean: Bool,
@@ -500,7 +500,7 @@ final class TestService { // swiftlint:disable:this type_body_length
         }
     }
 
-    private func findMinimalSchemesForPlatforms(
+    func findMinimalSchemesForPlatforms(
         workspaceScheme: Scheme,
         platform: Platform?,
         buildGraphInspector: BuildGraphInspecting,
