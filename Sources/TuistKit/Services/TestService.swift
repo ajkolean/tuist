@@ -299,7 +299,7 @@ final class TestService { // swiftlint:disable:this type_body_length
             
             
             for testScheme in workplaceSchemes {
-                try await self.testScheme(
+                try await self.testWorkplaceScheme(
                     scheme: testScheme,
                     graphTraverser: graphTraverser,
                     clean: clean,
@@ -353,6 +353,84 @@ final class TestService { // swiftlint:disable:this type_body_length
     
     // swiftlint:disable:next function_body_length
     private func testScheme(
+        scheme: Scheme,
+        graphTraverser: GraphTraversing,
+        clean: Bool,
+        configuration: String?,
+        version: Version?,
+        deviceName: String?,
+        platform: String?,
+        rosetta: Bool,
+        resultBundlePath: AbsolutePath?,
+        derivedDataPath: AbsolutePath?,
+        retryCount: Int,
+        testTargets: [TestIdentifier],
+        skipTestTargets: [TestIdentifier],
+        testPlanConfiguration: TestPlanConfiguration?,
+        passthroughXcodeBuildArguments: [String]
+    ) async throws {
+        logger.log(level: .notice, "Testing scheme \(scheme.name)", metadata: .section)
+        if let testPlan = testPlanConfiguration?.testPlan, let testPlans = scheme.testAction?.testPlans,
+           !testPlans.contains(where: { $0.name == testPlan })
+        {
+            throw TestServiceError.testPlanNotFound(
+                scheme: scheme.name,
+                testPlan: testPlan,
+                existing: testPlans.map(\.name)
+            )
+        }
+        guard let buildableTarget = buildGraphInspector.testableTarget(
+            scheme: scheme,
+            testPlan: testPlanConfiguration?.testPlan,
+            testTargets: testTargets,
+            skipTestTargets: skipTestTargets,
+            graphTraverser: graphTraverser
+        ) else {
+            throw TestServiceError.schemeWithoutTestableTargets(scheme: scheme.name, testPlan: testPlanConfiguration?.testPlan)
+        }
+        
+        let buildPlatform: TuistGraph.Platform
+        
+        if let platform {
+            buildPlatform = try TuistGraph.Platform.from(commandLineValue: platform)
+        } else {
+            buildPlatform = try buildableTarget.target.servicePlatform
+        }
+        
+        let destination = try await XcodeBuildDestination.find(
+            for: buildableTarget.target,
+            on: buildPlatform,
+            scheme: scheme,
+            version: version,
+            deviceName: deviceName,
+            graphTraverser: graphTraverser,
+            simulatorController: simulatorController
+        )
+        
+        try await xcodebuildController.test(
+            .workspace(graphTraverser.workspace.xcWorkspacePath),
+            scheme: scheme.name,
+            clean: clean,
+            destination: destination,
+            rosetta: rosetta,
+            derivedDataPath: derivedDataPath,
+            resultBundlePath: resultBundlePath,
+            arguments: buildGraphInspector.buildArguments(
+                project: buildableTarget.project,
+                target: buildableTarget.target,
+                configuration: configuration,
+                skipSigning: false
+            ),
+            retryCount: retryCount,
+            testTargets: testTargets,
+            skipTestTargets: skipTestTargets,
+            testPlanConfiguration: testPlanConfiguration,
+            passthroughXcodeBuildArguments: passthroughXcodeBuildArguments
+        )
+    }
+    
+    // swiftlint:disable:next function_body_length
+    private func testWorkplaceScheme(
         scheme: Scheme,
         graphTraverser: GraphTraversing,
         clean: Bool,
@@ -460,7 +538,6 @@ final class TestService { // swiftlint:disable:this type_body_length
         if let platform {
             platformToTargetsMap = platformToTargetsMap.filter { $0.key == platform }
         }
-        
         
         // If only one platform, use the workspace scheme
         if platformToTargetsMap.count <= 1,

@@ -1,6 +1,7 @@
 import Foundation
 
 public enum TuistAcceptanceFixtures {
+    case appWithAllPlatforms
     case appWithBuildRules
     case appWithCustomDefaultConfiguration
     case appWithFrameworkAndTests
@@ -73,6 +74,8 @@ public enum TuistAcceptanceFixtures {
 
     public var path: String {
         switch self {
+        case .appWithAllPlatforms:
+            return "app_with_all_platforms"
         case .appWithBuildRules:
             return "app_with_build_rules"
         case .appWithCustomDefaultConfiguration:

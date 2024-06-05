@@ -127,6 +127,7 @@ open class TuistAcceptanceTestCase: XCTestCase {
         ] + arguments
 
         let parsedCommand = try command.parse(arguments)
+        
         try await parsedCommand.run()
     }
 
