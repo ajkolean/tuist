@@ -800,7 +800,6 @@ final class TestServiceTests: TuistUnitTestCase {
         )
 
         // Then
-        dump(minimalSchemes)
         XCTAssertEqual(minimalSchemes.count, 2)
         XCTAssertEqual(minimalSchemes[.iOS]?.1.target.name, iosTarget.target.name)
         XCTAssertEqual(minimalSchemes[.macOS]?.1.target.name, macTarget.target.name)

@@ -1,7 +1,8 @@
 import ProjectDescription
 
 let project = Project(
-    name: "AppWithWatchApp",
+    name: "App",
+    organizationName: "Tuist",
     targets: [
         .target(
             name: "App",
@@ -70,7 +71,6 @@ let project = Project(
             dependencies: [
                 .target(name: "Framework_b_watchos"),
             ]
-
         ),
         .target(
             name: "WatchApp",
