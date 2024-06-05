@@ -132,26 +132,13 @@ public final class BuildGraphInspector: BuildGraphInspecting {
         skipTestTargets: [TestIdentifier],
         graphTraverser: GraphTraversing
     ) -> GraphTarget? {
-        func isIncluded(_ testTarget: TestableTarget) -> Bool {
-            if testTarget.isSkipped {
-                return false
-            } else if testTargets.isEmpty {
-                return !skipTestTargets.contains { $0.target == testTarget.target.name }
-            } else {
-                return testTargets.contains { $0.target == testTarget.target.name }
-            }
-        }
-
-        if let testPlanName = testPlan,
-           let testPlan = scheme.testAction?.testPlans?.first(where: { $0.name == testPlanName }),
-           let target = testPlan.testTargets.first(where: { isIncluded($0) })?.target
-        {
-            return graphTraverser.target(path: target.projectPath, name: target.name)
-        } else if let testTarget = scheme.testAction?.targets.first {
-            return graphTraverser.target(path: testTarget.target.projectPath, name: testTarget.target.name)
-        } else {
-            return nil
-        }
+        return testableTargets(
+            scheme: scheme,
+            testPlan: testPlan,
+            testTargets: testTargets,
+            skipTestTargets: skipTestTargets,
+            graphTraverser: graphTraverser
+        ).first
     }
 
     public func testableTargets(
@@ -172,18 +159,19 @@ public final class BuildGraphInspector: BuildGraphInspecting {
         }
 
         if let testPlanName = testPlan,
-           let testPlan = scheme.testAction?.testPlans?.first(where: { $0.name == testPlanName }),
-           let target = testPlan.testTargets.first(where: { isIncluded($0) })?.target
+           let testPlan = scheme.testAction?.testPlans?.first(where: { $0.name == testPlanName })
         {
-            return testPlan.testTargets.filter { isIncluded($0) }.map(\.target).compactMap { graphTraverser.target(
-                path: $0.projectPath,
-                name: $0.name
-            ) }
-        } else if let testTarget = scheme.testAction?.targets.first {
+            return testPlan.testTargets
+                .filter { isIncluded($0) }
+                .map(\.target)
+                .compactMap { graphTraverser.target(
+                    path: $0.projectPath,
+                    name: $0.name
+                )
+                }
+        } else {
             return scheme.testAction?.targets
                 .compactMap { graphTraverser.target(path: $0.target.projectPath, name: $0.target.name) } ?? []
-        } else {
-            return []
         }
     }
 
